@@ -324,7 +324,7 @@ export default function App() {
   const SC = {
     done:    { bg:"#F0FDF9", left:"#10B981", badge:"✅ Done",     bc:"#10B981", bb:"#D1FAE5" },
     today:   { bg:"#EFF6FF", left:"#3B82F6", badge:"📍 Today",    bc:"#3B82F6", bb:"#DBEAFE" },
-    overdue: { bg:"#FFF5F5", left:"#EF4444", badge:"🔴 Overdue",  bc:"#EF4444", bb:"#FEE2E2" },
+    overdue: { bg:"#FFFBEB", left:"#F59E0B", badge:"⏳ Pending",  bc:"#F59E0B", bb:"#FEF3C7" },
     upcoming:{ bg:"#fff",    left:"transparent", badge:null, bc:null, bb:null },
     break:   { bg:"#F0FDF4", left:"transparent", badge:null, bc:null, bb:null },
   };
