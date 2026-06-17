@@ -56,3 +56,4 @@ export function buildCompletedSet(weeksState, WEEKS) {
   });
   return s;
 }
+
