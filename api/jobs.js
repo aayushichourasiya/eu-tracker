@@ -89,4 +89,3 @@ const FALLBACK_JOBS = [
   { id: "4", title: "Java Engineer — Supply Chain", company: "Picnic", location: "Amsterdam, Netherlands", visa: true, remote: false, tags: ["Java", "Spring", "Microservices"], url: "https://picnic.tech", posted: null, description: "Reinvent grocery delivery with smart backend systems." },
   { id: "5", title: "Senior Backend Developer", company: "HelloFresh", location: "Berlin, Germany", visa: true, remote: false, tags: ["Java", "Spring Boot", "Kafka", "AWS"], url: "https://hellofresh.com/careers", posted: null, description: "Scale meal kit delivery across 17 countries." },
 ];
-
