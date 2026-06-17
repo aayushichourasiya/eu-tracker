@@ -186,6 +186,19 @@ const DAILY_ENG={
 
 const STAR_STORIES=["Biggest technical challenge you faced","Conflict with a colleague — how you resolved it","Time you failed or made a mistake","Led a project without being the manager","When you disagreed with a technical decision","Had to learn something very quickly under pressure","You improved a process or system proactively","Working across teams or with non-engineers"];
 
+const FALLBACK_JOBS_CLIENT=[
+  {id:"f1",title:"Senior Java Backend Engineer",company:"Booking.com",location:"Amsterdam, Netherlands",visa:true,remote:false,tags:["Java","Spring Boot","Kafka","K8s"],url:"https://careers.booking.com",description:"Build and scale backend systems serving millions of travellers daily. Java 17+, Spring Boot 3, microservices."},
+  {id:"f2",title:"Java Backend Engineer",company:"Wise",location:"Tallinn, Estonia",visa:true,remote:false,tags:["Java","Spring","Microservices","AWS"],url:"https://wise.jobs",description:"Distributed financial systems processing billions in international transfers. Strong Java + distributed systems."},
+  {id:"f3",title:"Backend Software Engineer (Java)",company:"Klarna",location:"Stockholm, Sweden",visa:true,remote:false,tags:["Java","Spring Boot","Fintech","Kafka"],url:"https://klarna.com/careers",description:"Build the future of payments at global scale. High-throughput Java services with a world-class team."},
+  {id:"f4",title:"Java Engineer — Supply Chain",company:"Picnic",location:"Amsterdam, Netherlands",visa:true,remote:false,tags:["Java","Spring","Microservices","PostgreSQL"],url:"https://picnic.tech",description:"Reinvent grocery delivery with smart backend systems. Java-first company with 20+ engineering teams."},
+  {id:"f5",title:"Senior Backend Developer",company:"HelloFresh",location:"Berlin, Germany",visa:true,remote:false,tags:["Java","Spring Boot","Kafka","AWS"],url:"https://hellofresh.com/careers",description:"Scale meal kit delivery across 17 countries. Java microservices on AWS."},
+  {id:"f6",title:"Backend Engineer — Java & Kotlin",company:"Personio",location:"Munich, Germany",visa:true,remote:false,tags:["Java","Kotlin","Spring","K8s"],url:"https://personio.com/careers",description:"Build HR software for thousands of European companies. Java + Kotlin backend on GCP."},
+  {id:"f7",title:"Java Backend Engineer",company:"Catawiki",location:"Amsterdam, Netherlands",visa:true,remote:false,tags:["Java","AWS","Kafka","Spring Boot"],url:"https://catawiki.com/careers",description:"Power Europe's leading online auction platform serving millions globally."},
+  {id:"f8",title:"Senior Software Engineer (Java)",company:"Glovo",location:"Barcelona, Spain",visa:true,remote:false,tags:["Java","Microservices","Kafka","Spring"],url:"https://glovoapp.com/careers",description:"High-scale Java microservices for delivery infrastructure across 25+ countries."},
+  {id:"f9",title:"Java Platform Engineer",company:"Adyen",location:"Amsterdam, Netherlands",visa:true,remote:false,tags:["Java","Payments","Distributed Systems"],url:"https://careers.adyen.com",description:"Payment processing infrastructure handling billions in volume. Strong Java required."},
+  {id:"f10",title:"Backend Java Developer",company:"Mollie",location:"Amsterdam, Netherlands",visa:true,remote:false,tags:["Java","Spring Boot","Fintech","AWS"],url:"https://jobs.mollie.com",description:"Build the payment platform for 250,000+ European businesses."},
+];
+
 const defaultState=()=>{
   const checks={};
   TOPICS.forEach(t=>t.subtopics.forEach(s=>s.items.forEach((_,i)=>{checks[`${s.id}-${i}`]=false;})));
@@ -310,7 +323,25 @@ export default function App(){
   const setAppNotes=(id,notes)=>update(s=>({...s,apps:{...s.apps,[id]:{...(s.apps[id]||{}),notes}}}));
   const addJournal=()=>{if(!journalText.trim())return;const e={id:Date.now(),date:new Date().toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"}),text:journalText.trim()};update(s=>({...s,journalEntries:[e,...(s.journalEntries||[])]}));setJournalText("");};
   const deleteJournal=id=>update(s=>({...s,journalEntries:(s.journalEntries||[]).filter(e=>e.id!==id)}));
-  const fetchJobs=async()=>{setJobsLoading(true);try{const r=await fetch("/api/jobs");const d=await r.json();update(s=>({...s,jobs:d.jobs||[],jobsFetchedAt:d.fetched_at}));}catch(e){}setJobsLoading(false);};
+  const fetchJobs=async()=>{
+    setJobsLoading(true);
+    try{
+      const r=await fetch("/api/jobs",{method:"GET",headers:{"Accept":"application/json"}});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      const d=await r.json();
+      const jobs=d.jobs||[];
+      if(jobs.length>0){
+        update(s=>({...s,jobs,jobsFetchedAt:d.fetched_at}));
+      } else {
+        // API returned empty — load hardcoded fallback directly
+        update(s=>({...s,jobs:FALLBACK_JOBS_CLIENT,jobsFetchedAt:new Date().toISOString()}));
+      }
+    }catch(e){
+      console.error("Jobs fetch failed:",e);
+      update(s=>({...s,jobs:FALLBACK_JOBS_CLIENT,jobsFetchedAt:new Date().toISOString()}));
+    }
+    setJobsLoading(false);
+  };
 
   const completedDays=buildCompletedSet(state.weeks,WEEKS);
   const totalChecks=Object.keys(state.checks).length;
@@ -427,97 +458,98 @@ export default function App(){
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",background:C.card,borderBottom:`1px solid ${C.cardBorder}`,flexShrink:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,background:C.purple,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{color:"#fff",fontSize:13,fontWeight:800}}>EU</span>
+          {/* Mobile only logo */}
+          <div className="mob" style={{display:"none",alignItems:"center",gap:8}}>
+            <div style={{width:28,height:28,background:C.purple,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <span style={{color:"#fff",fontSize:11,fontWeight:800}}>EU</span>
+            </div>
+            <span style={{fontSize:13,fontWeight:700,color:C.ink}}>Switch Tracker</span>
           </div>
-          <div>
-            <div style={{fontSize:13,fontWeight:700,color:C.ink}}>Switch Tracker</div>
-            <div style={{fontSize:10,color:C.muted}}>{saving?"⟳ Saving…":"✓ Synced"}</div>
-          </div>
+          {/* Desktop: just show current view name */}
+          <span className="dsk" style={{fontSize:14,fontWeight:700,color:C.ink}}>{NAV_DESKTOP.find(n=>n.id===view)?.label||"Dashboard"}</span>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:11,color:C.purple,background:C.purpleL,padding:"3px 10px",borderRadius:20,fontWeight:600}}>{Math.round((doneChecks/totalChecks)*100)}% overall</span>
-          <button className="sb" onClick={()=>setDark(d=>!d)} style={{width:36,height:36,borderRadius:10,border:`1px solid ${C.cardBorder}`,background:C.purpleL,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
+          <button className="sb" onClick={()=>setDark(d=>!d)} style={{width:34,height:34,borderRadius:10,border:`1px solid ${C.cardBorder}`,background:C.purpleL,cursor:"pointer",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center"}}>{dark?"☀️":"🌙"}</button>
         </div>
       </div>
 
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
 
         {/* Desktop sidebar */}
-        <div className="dsk" style={{display:"flex",width:230,flexShrink:0,borderRight:`1px solid ${C.cardBorder}`,background:C.card}}>
-          {/* Icon rail */}
-          <div style={{width:52,background:C.sidebar,display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 0",gap:4}}>
+        <div className="dsk" style={{display:"flex",width:220,flexShrink:0,borderRight:`1px solid rgba(255,255,255,0.08)`,background:C.sidebar,flexDirection:"column",overflow:"hidden"}}>
+          {/* Logo */}
+          <div style={{padding:"18px 16px 14px",borderBottom:"1px solid rgba(255,255,255,0.08)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:32,height:32,background:C.purple,borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{color:"#fff",fontSize:13,fontWeight:800}}>EU</span>
+              </div>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:"#F2F2F7"}}>Switch Tracker</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)"}}>{saving?"⟳ Saving…":"✓ Synced"}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Nav items */}
+          <div style={{padding:"10px 10px 0",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
             {NAV_DESKTOP.map(n=>(
-              <button key={n.id} className="sb" onClick={()=>go(n.id)} title={n.label} style={{
-                width:36,height:36,borderRadius:10,border:"none",cursor:"pointer",
-                background:view===n.id?"rgba(157,143,232,0.25)":"transparent",
-                fontSize:17,display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s",
-              }}><span>{n.icon}</span></button>
+              <button key={n.id} className="sb" onClick={()=>go(n.id)} style={{
+                width:"100%",display:"flex",alignItems:"center",gap:10,padding:"8px 10px",
+                borderRadius:9,border:"none",cursor:"pointer",marginBottom:2,textAlign:"left",
+                background:view===n.id?"rgba(157,143,232,0.2)":"transparent",
+                borderLeft:view===n.id?`3px solid ${C.purple}`:"3px solid transparent",
+                transition:"all 0.15s",
+              }}>
+                <span style={{fontSize:16}}>{n.icon}</span>
+                <span style={{fontSize:12,fontWeight:view===n.id?600:400,color:view===n.id?"#E8E6F8":"rgba(255,255,255,0.5)"}}>{n.label}</span>
+              </button>
             ))}
           </div>
 
-          {/* Secondary sidebar — only shown on log view for phase/week, else just nav labels */}
-          <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",background:dark?C.sidebarSub:"#FAFAF8"}}>
-            {view==="log"?(
-              <>
-                <div style={{padding:"12px 10px 6px",borderBottom:`1px solid ${C.cardBorder}`}}>
-                  <div style={{fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Daily Log</div>
-                  {/* Accordion phases */}
-                  {PHASES.map(p=>{
-                    const pc=dark?p.darkColor:p.color;
-                    const isOpen=expandedPhases[p.id];
-                    return(
-                      <div key={p.id}>
-                        <button className="sb" onClick={()=>setExpandedPhases(ep=>({...ep,[p.id]:!ep[p.id]}))} style={{
-                          width:"100%",display:"flex",alignItems:"center",gap:6,padding:"6px 8px",borderRadius:8,border:"none",
-                          background:isOpen?`${pc}12`:"transparent",cursor:"pointer",textAlign:"left",
-                          borderLeft:isOpen?`3px solid ${pc}`:"3px solid transparent",transition:"all 0.2s",marginBottom:1,
-                        }}>
-                          <div style={{width:6,height:6,borderRadius:"50%",background:pc,flexShrink:0}}/>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:11,fontWeight:isOpen?600:400,color:isOpen?pc:C.inkMid}}>{p.label}</div>
-                            <div style={{fontSize:9,color:C.muted}}>{p.weeks}</div>
-                          </div>
-                          <span style={{fontSize:9,color:C.muted,transform:isOpen?"rotate(180deg)":"rotate(0)",transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)"}}>{isOpen?"▲":"▼"}</span>
-                        </button>
-                        {isOpen&&(
-                          <div style={{paddingLeft:16,marginBottom:4}}>
-                            {WEEKS.filter(w=>w.phase===p.id).map(w=>(
-                              <button key={w.id} className="sb" onClick={()=>setActiveWeek(w.id)} style={{
-                                width:"100%",display:"flex",alignItems:"center",gap:6,padding:"5px 8px",borderRadius:7,border:"none",
-                                background:activeWeek===w.id?`${pc}15`:"transparent",cursor:"pointer",textAlign:"left",
-                                borderLeft:activeWeek===w.id?`2px solid ${pc}`:"2px solid transparent",transition:"all 0.15s",marginBottom:1,
-                              }}>
-                                <div style={{flex:1}}>
-                                  <div style={{fontSize:10,fontWeight:activeWeek===w.id?600:400,color:activeWeek===w.id?pc:C.inkMid}}>{w.label}</div>
-                                  <div style={{fontSize:8,color:C.muted}}>{w.subtitle}</div>
-                                  <div style={{marginTop:3}}><Bar value={weekProg(w.id)} color={pc} bg={`${pc}15`} h={2}/></div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+          {/* Phase accordion — only when on log view */}
+          {view==="log"&&(
+            <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"rgba(255,255,255,0.3)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Weeks</div>
+              {PHASES.map(p=>{
+                const pc=dark?p.darkColor:p.color;
+                const isOpen=expandedPhases[p.id];
+                return(
+                  <div key={p.id} style={{marginBottom:2}}>
+                    <button className="sb" onClick={()=>setExpandedPhases(ep=>({...ep,[p.id]:!ep[p.id]}))} style={{
+                      width:"100%",display:"flex",alignItems:"center",gap:7,padding:"7px 9px",borderRadius:9,border:"none",
+                      background:isOpen?"rgba(255,255,255,0.06)":"transparent",cursor:"pointer",textAlign:"left",
+                      borderLeft:isOpen?`3px solid ${pc}`:"3px solid transparent",transition:"all 0.18s",
+                    }}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:pc,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:11,fontWeight:isOpen?600:400,color:isOpen?pc:"rgba(255,255,255,0.55)"}}>{p.label}</div>
+                        <div style={{fontSize:9,color:"rgba(255,255,255,0.3)"}}>{p.weeks}</div>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
-            ):(
-              <div style={{padding:"14px 10px"}}>
-                <div style={{fontSize:9,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Navigation</div>
-                {NAV_DESKTOP.map(n=>(
-                  <button key={n.id} className="sb" onClick={()=>go(n.id)} style={{
-                    width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:9,border:"none",
-                    background:view===n.id?C.purpleL:"transparent",cursor:"pointer",marginBottom:2,textAlign:"left",
-                    borderLeft:view===n.id?`3px solid ${C.purple}`:"3px solid transparent",transition:"all 0.15s",
-                  }}>
-                    <span style={{fontSize:15}}>{n.icon}</span>
-                    <span style={{fontSize:12,fontWeight:view===n.id?600:400,color:view===n.id?C.purple:C.inkMid}}>{n.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                      <span style={{fontSize:9,color:"rgba(255,255,255,0.3)",transform:isOpen?"rotate(180deg)":"rotate(0)",transition:"transform 0.25s cubic-bezier(0.34,1.56,0.64,1)"}}>▼</span>
+                    </button>
+                    {isOpen&&(
+                      <div className="acc" style={{paddingLeft:14,marginBottom:2}}>
+                        {WEEKS.filter(w=>w.phase===p.id).map(w=>(
+                          <button key={w.id} className="sb" onClick={()=>setActiveWeek(w.id)} style={{
+                            width:"100%",display:"flex",alignItems:"center",padding:"5px 9px",borderRadius:7,border:"none",
+                            background:activeWeek===w.id?`${pc}20`:"transparent",cursor:"pointer",textAlign:"left",
+                            borderLeft:activeWeek===w.id?`2px solid ${pc}`:"2px solid transparent",transition:"all 0.12s",marginBottom:1,
+                          }}>
+                            <div style={{flex:1}}>
+                              <div style={{fontSize:10,fontWeight:activeWeek===w.id?600:400,color:activeWeek===w.id?pc:"rgba(255,255,255,0.45)"}}>{w.label}</div>
+                              <div style={{fontSize:8,color:"rgba(255,255,255,0.25)",marginTop:1}}>{w.subtitle}</div>
+                              <div style={{marginTop:3}}><Bar value={weekProg(w.id)} color={pc} bg="rgba(255,255,255,0.08)" h={2}/></div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Main content */}
@@ -579,7 +611,7 @@ export default function App(){
                 </div>
 
                 {/* STAR */}
-                <div style={card()}>
+                <div style={{...card(),marginBottom:16}}>
                   <div style={{fontSize:13,fontWeight:700,color:C.ink,marginBottom:10}}>STAR stories</div>
                   {STAR_STORIES.map((s,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:i<STAR_STORIES.length-1?`1px solid ${C.cardBorder}`:"none"}}>
@@ -592,6 +624,67 @@ export default function App(){
                     <span style={{fontSize:10,color:C.muted}}>◀ Written</span><span style={{fontSize:10,color:C.muted}}>Recorded ▶</span>
                   </div>
                 </div>
+
+                {/* Inline Today's Log — current week days */}
+                {todayInfo&&(()=>{
+                  const curWeek=todayInfo.week;
+                  const curPhase=todayInfo.phase;
+                  const pc=dark?curPhase.darkColor:curPhase.color;
+                  const curWeekIdx=WEEKS.findIndex(w=>w.id===curWeek?.id);
+                  return(
+                    <div style={card()}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,paddingBottom:10,borderBottom:`1px solid ${C.cardBorder}`}}>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:C.ink}}>This Week's Log</div>
+                          <div style={{fontSize:11,color:C.muted,marginTop:1}}>{curWeek?.label} · {curWeek?.subtitle}</div>
+                        </div>
+                        <button className="sb" onClick={()=>go("log")} style={{fontSize:11,color:C.purple,background:C.purpleL,border:"none",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontWeight:600}}>Full Log →</button>
+                      </div>
+                      {DAY_LABELS.map((day,di)=>{
+                        const isBreak=di===6;
+                        const gIdx=curWeekIdx*7+di;
+                        const ds=state.weeks[curWeek.id]?.[di]||{tech:false,english:false};
+                        const techTask=DAILY_TECH[curWeek.id]?.[di]||"Study session";
+                        const schDate=getScheduledDate(gIdx,completedDays);
+                        const isDone=!isBreak&&ds.tech;
+                        const status=getDayStatus(schDate,isDone,isBreak);
+                        const isToday=di===todayInfo.di;
+                        return(
+                          <div key={di} style={{display:"flex",alignItems:"flex-start",padding:"9px 0",borderBottom:di<6?`1px solid ${C.cardBorder}`:"none",
+                            background:isToday?`${pc}06`:"transparent",marginLeft:isToday?-4:0,paddingLeft:isToday?4:0,borderRadius:isToday?8:0,transition:"all 0.2s"}}>
+                            <div style={{width:50,flexShrink:0}}>
+                              <div style={{fontSize:11,fontWeight:isToday?700:500,color:isToday?pc:status==="done"?C.green:C.ink}}>{day}</div>
+                              <div style={{fontSize:9,color:C.muted}}>{formatDate(schDate).split(" ").slice(1).join(" ")}</div>
+                            </div>
+                            <div style={{flex:1,marginLeft:8}}>
+                              {isBreak?(
+                                <div style={{fontSize:11,color:C.green}}>💚 Rest day</div>
+                              ):(
+                                <>
+                                  <div style={{fontSize:11,color:C.ink,lineHeight:1.4,marginBottom:4,opacity:ds.tech?0.5:1,textDecoration:ds.tech?"line-through":"none"}}>{techTask}</div>
+                                  <div style={{display:"flex",gap:8}}>
+                                    <div style={{display:"flex",alignItems:"center",gap:4}} onClick={e=>{e.stopPropagation();toggleDay(curWeek.id,di,"tech",!ds.tech?(()=>fireConfetti(window.innerWidth/2,window.innerHeight/2)):null);}}>
+                                      <Chk checked={ds.tech} onChange={()=>toggleDay(curWeek.id,di,"tech",!ds.tech?(()=>fireConfetti(window.innerWidth/2,window.innerHeight/2)):null)} color={C.purple} size={13} onConfetti={(x,y)=>fireConfetti(x,y)}/>
+                                      <span style={{fontSize:10,color:C.muted}}>Tech</span>
+                                    </div>
+                                    <div style={{display:"flex",alignItems:"center",gap:4}} onClick={e=>{e.stopPropagation();toggleDay(curWeek.id,di,"english");}}>
+                                      <Chk checked={ds.english} onChange={()=>toggleDay(curWeek.id,di,"english")} color={C.green} size={13} onConfetti={(x,y)=>fireConfetti(x,y)}/>
+                                      <span style={{fontSize:10,color:C.muted}}>English</span>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            <div style={{flexShrink:0,marginLeft:6}}>
+                              {isToday&&<span style={{fontSize:9,fontWeight:700,color:pc,background:`${pc}15`,padding:"2px 7px",borderRadius:20}}>Today</span>}
+                              {status==="done"&&<span style={{fontSize:13}}>✅</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -1068,4 +1161,3 @@ export default function App(){
     </div>
   );
 }
-
